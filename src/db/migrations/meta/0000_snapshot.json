@@ -62,11 +62,7 @@
       "indexes": {
         "budget_periods_unique_idx": {
           "name": "budget_periods_unique_idx",
-          "columns": [
-            "household_id",
-            "year",
-            "month"
-          ],
+          "columns": ["household_id", "year", "month"],
           "isUnique": true
         }
       },
@@ -75,12 +71,8 @@
           "name": "budget_periods_household_id_households_id_fk",
           "tableFrom": "budget_periods",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -148,9 +140,7 @@
       "indexes": {
         "categories_period_idx": {
           "name": "categories_period_idx",
-          "columns": [
-            "budget_period_id"
-          ],
+          "columns": ["budget_period_id"],
           "isUnique": false
         }
       },
@@ -159,12 +149,8 @@
           "name": "categories_budget_period_id_budget_periods_id_fk",
           "tableFrom": "categories",
           "tableTo": "budget_periods",
-          "columnsFrom": [
-            "budget_period_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["budget_period_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -233,9 +219,7 @@
       "indexes": {
         "households_status_idx": {
           "name": "households_status_idx",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         }
       },
@@ -244,12 +228,8 @@
           "name": "households_owner_user_id_users_id_fk",
           "tableFrom": "households",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -323,16 +303,12 @@
       "indexes": {
         "invites_token_idx": {
           "name": "invites_token_idx",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "isUnique": true
         },
         "invites_household_id_idx": {
           "name": "invites_household_id_idx",
-          "columns": [
-            "household_id"
-          ],
+          "columns": ["household_id"],
           "isUnique": false
         }
       },
@@ -341,12 +317,8 @@
           "name": "invites_household_id_households_id_fk",
           "tableFrom": "invites",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -354,12 +326,8 @@
           "name": "invites_used_by_user_id_users_id_fk",
           "tableFrom": "invites",
           "tableTo": "users",
-          "columnsFrom": [
-            "used_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["used_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -411,16 +379,12 @@
       "indexes": {
         "memberships_user_id_idx": {
           "name": "memberships_user_id_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": true
         },
         "memberships_household_id_idx": {
           "name": "memberships_household_id_idx",
-          "columns": [
-            "household_id"
-          ],
+          "columns": ["household_id"],
           "isUnique": false
         }
       },
@@ -429,12 +393,8 @@
           "name": "memberships_user_id_users_id_fk",
           "tableFrom": "memberships",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -442,12 +402,8 @@
           "name": "memberships_household_id_households_id_fk",
           "tableFrom": "memberships",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -520,30 +476,22 @@
       "indexes": {
         "transactions_period_idx": {
           "name": "transactions_period_idx",
-          "columns": [
-            "budget_period_id"
-          ],
+          "columns": ["budget_period_id"],
           "isUnique": false
         },
         "transactions_category_idx": {
           "name": "transactions_category_idx",
-          "columns": [
-            "category_id"
-          ],
+          "columns": ["category_id"],
           "isUnique": false
         },
         "transactions_author_idx": {
           "name": "transactions_author_idx",
-          "columns": [
-            "author_membership_id"
-          ],
+          "columns": ["author_membership_id"],
           "isUnique": false
         },
         "transactions_spent_at_idx": {
           "name": "transactions_spent_at_idx",
-          "columns": [
-            "spent_at"
-          ],
+          "columns": ["spent_at"],
           "isUnique": false
         }
       },
@@ -552,12 +500,8 @@
           "name": "transactions_budget_period_id_budget_periods_id_fk",
           "tableFrom": "transactions",
           "tableTo": "budget_periods",
-          "columnsFrom": [
-            "budget_period_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["budget_period_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -565,12 +509,8 @@
           "name": "transactions_category_id_categories_id_fk",
           "tableFrom": "transactions",
           "tableTo": "categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["category_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -578,12 +518,8 @@
           "name": "transactions_author_membership_id_memberships_id_fk",
           "tableFrom": "transactions",
           "tableTo": "memberships",
-          "columnsFrom": [
-            "author_membership_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author_membership_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -635,9 +571,7 @@
       "indexes": {
         "users_telegram_id_idx": {
           "name": "users_telegram_id_idx",
-          "columns": [
-            "telegram_id"
-          ],
+          "columns": ["telegram_id"],
           "isUnique": true
         }
       },
