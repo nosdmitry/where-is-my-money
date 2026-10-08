@@ -20,6 +20,7 @@ import type { BotContext } from './context.js';
 import { authMiddleware } from './middlewares/auth.js';
 import { errorMiddleware } from './middlewares/error.js';
 import { handleWizardText } from './wizards/handle.js';
+import { onShowBalance } from './commands/balance.js';
 
 export function createBot(): Bot<BotContext> {
   const config: BotConfig<BotContext> = {};
@@ -46,6 +47,7 @@ export function createBot(): Bot<BotContext> {
   // Reply-кнопки главного меню
   bot.hears('⚙️ Настройки', settingsCommand);
   bot.hears('➕ Расход', onAddExpense);
+  bot.hears('💰 Остатки', onShowBalance);
 
   // Inline: создание бюджета
   bot.callbackQuery('wizard:create-budget', onCreateBudgetClick);
