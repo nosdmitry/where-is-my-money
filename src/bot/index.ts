@@ -28,6 +28,7 @@ import {
   onShowHistory,
 } from './commands/history.js';
 import { onExportCsv, onShowReport } from './commands/report.js';
+import { onSettingsInvite } from './commands/invite.js';
 
 export function createBot(): Bot<BotContext> {
   const config: BotConfig<BotContext> = {};
@@ -58,6 +59,7 @@ export function createBot(): Bot<BotContext> {
   bot.hears('📊 Отчёт', onShowReport);
   bot.hears('📜 История', onShowHistory);
 
+  bot.callbackQuery('settings:invite', onSettingsInvite);
   bot.callbackQuery('report:csv', onExportCsv);
   bot.callbackQuery(/^hist:page:\d+$/, onHistoryPage);
   bot.callbackQuery(/^hist:del:\d+$/, onHistoryDelete);

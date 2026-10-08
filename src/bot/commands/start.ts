@@ -1,6 +1,12 @@
 import { InlineKeyboard } from 'grammy';
-import { getContextByUserId } from '../../services/household.service.js';
+import { eq } from 'drizzle-orm';
+import { db } from '../../db/client.js';
+import { users } from '../../db/schema.js';
+import { getContextByUserId, getHouseholdById } from '../../services/household.service.js';
 import { acceptInvite } from '../../services/invite.service.js';
+import { getActivePeriod } from '../../services/budget-period.service.js';
+import { formatMoney } from '../../utils/money.js';
+import { periodLabel } from '../../utils/date.js';
 import { mainMenuKeyboard } from '../keyboards/main.js';
 import { clearWizard, setWizard } from '../wizards/index.js';
 import type { BotContext } from '../context.js';
@@ -10,20 +16,13 @@ export async function startCommand(ctx: BotContext): Promise<void> {
 
   const payload = typeof ctx.match === 'string' ? ctx.match : '';
 
-  // Deep-link с инвайтом: t.me/bot?start=inv_<token>
+  // Deep-link с инвайтом
   if (payload.startsWith('inv_')) {
     const token = payload.slice(4);
-    acceptInvite(token, ctx.user.id);
+    const result = acceptInvite(token, ctx.user.id);
 
     clearWizard(ctx.from.id);
-    await ctx.reply('✅ Вы присоединились к бюджету!');
-
-    const app = getContextByUserId(ctx.user.id);
-    if (app) {
-      await ctx.reply('Главное меню:', {
-        reply_markup: mainMenuKeyboard(app.membership.role === 'admin'),
-      });
-    }
+    await sendWelcomeToNewMember(ctx, result.householdId, ctx.user.id);
     return;
   }
 
@@ -45,6 +44,56 @@ export async function startCommand(ctx: BotContext): Promise<void> {
       'Создать бюджет?',
     { reply_markup: kb },
   );
+}
+
+/**
+ * Приветствие нового участника после принятия инвайта.
+ */
+async function sendWelcomeToNewMember(
+  ctx: BotContext,
+  householdId: number,
+  userId: number,
+): Promise<void> {
+  const household = getHouseholdById(householdId);
+  if (!household) {
+    await ctx.reply('Не удалось загрузить данные бюджета.');
+    return;
+  }
+
+  // Имя админа
+  const admin = db.select().from(users).where(eq(users.id, household.ownerUserId)).get();
+  const adminName = admin?.firstName ?? 'Администратор';
+
+  // Активный период
+  const period = getActivePeriod(householdId);
+
+  const lines: string[] = [];
+  lines.push('🎉 Вы присоединились к семейному бюджету!');
+  lines.push('');
+  lines.push(`Администратор: ${adminName}`);
+
+  if (period) {
+    lines.push(`Период: ${periodLabel(period)}`);
+    lines.push(`Общий лимит: ${formatMoney(period.totalLimit)}`);
+  }
+
+  lines.push('');
+  lines.push('Что вы можете:');
+  lines.push('➕ вносить расходы');
+  lines.push('💰 смотреть остатки');
+  lines.push('📊 смотреть отчёт и историю');
+  lines.push('');
+  lines.push('Лимиты и категории меняет только администратор.');
+
+  await ctx.reply(lines.join('\n'));
+
+  // Контекст теперь есть — показываем меню
+  const app = getContextByUserId(userId);
+  if (app) {
+    await ctx.reply('Главное меню:', {
+      reply_markup: mainMenuKeyboard(app.membership.role === 'admin'),
+    });
+  }
 }
 
 export async function menuCommand(ctx: BotContext): Promise<void> {
