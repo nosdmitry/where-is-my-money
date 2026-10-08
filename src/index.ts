@@ -1,18 +1,15 @@
-import { Bot } from 'grammy';
+import { createBot } from './bot/index.js';
 import { env } from './config/env.js';
+import { logger } from './config/logger.js';
 
-const bot = new Bot(env.BOT_TOKEN);
-
-bot.command('start', async (ctx) => {
-  await ctx.reply('Привет! Я бот для учёта семейного бюджета.');
-});
+const bot = createBot();
 
 bot.catch((err) => {
-  console.error('Bot error:', err.error);
+  logger.error({ err: err.error }, 'bot.unhandled');
 });
 
 await bot.start({
   onStart: (info) => {
-    console.log(`🤖 Bot @${info.username} started in ${env.NODE_ENV} mode`);
+    logger.info({ username: info.username, mode: env.NODE_ENV }, 'bot.started');
   },
 });
