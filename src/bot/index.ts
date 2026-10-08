@@ -9,6 +9,13 @@ import {
   onSettingsMain,
   settingsCommand,
 } from './commands/settings.js';
+import {
+  onAddExpense,
+  onExpenseCancel,
+  onExpenseCategoryChosen,
+  onExpenseConfirm,
+  onExpenseSkipComment,
+} from './commands/expense.js';
 import type { BotContext } from './context.js';
 import { authMiddleware } from './middlewares/auth.js';
 import { errorMiddleware } from './middlewares/error.js';
@@ -36,8 +43,9 @@ export function createBot(): Bot<BotContext> {
   bot.command('cancel', cancelCommand);
   bot.command('settings', settingsCommand);
 
-  // Reply-кнопки
+  // Reply-кнопки главного меню
   bot.hears('⚙️ Настройки', settingsCommand);
+  bot.hears('➕ Расход', onAddExpense);
 
   // Inline: создание бюджета
   bot.callbackQuery('wizard:create-budget', onCreateBudgetClick);
@@ -47,6 +55,12 @@ export function createBot(): Bot<BotContext> {
   bot.callbackQuery('settings:categories', onSettingsCategories);
   bot.callbackQuery('wizard:create-category', onCreateCategoryClick);
   bot.callbackQuery('wizard:cancel', onCancelWizard);
+
+  // Inline: расходы
+  bot.callbackQuery(/^expense:cat:\d+$/, onExpenseCategoryChosen);
+  bot.callbackQuery('expense:skip-comment', onExpenseSkipComment);
+  bot.callbackQuery('expense:confirm', onExpenseConfirm);
+  bot.callbackQuery('expense:cancel', onExpenseCancel);
 
   // Wizard перехватывает текст последним
   bot.on('message:text', async (ctx, next) => {

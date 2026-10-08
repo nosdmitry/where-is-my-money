@@ -5,11 +5,17 @@ import { InsufficientFundsError } from '../../domain/errors.js';
 import { formatMoney, parseMoney } from '../../utils/money.js';
 import { periodLabel } from '../../utils/date.js';
 import { categoriesKeyboard } from '../keyboards/inline.js';
+import { goToConfirmation, handleExpenseAmountInput } from '../commands/expense.js';
 import { clearWizard, getWizard, setWizard } from './index.js';
 
 const MAX_TOTAL_LIMIT = 1_000_000_000;
 const MAX_CATEGORY_LIMIT = 1_000_000_000;
+const MAX_COMMENT_LENGTH = 200;
 
+/**
+ * Обрабатывает текстовый ввод, если у пользователя активен wizard.
+ * Возвращает true, если сообщение было поглощено.
+ */
 export async function handleWizardText(ctx: BotContext): Promise<boolean> {
   if (!ctx.from || !ctx.user || !ctx.message?.text) return false;
 
@@ -18,7 +24,9 @@ export async function handleWizardText(ctx: BotContext): Promise<boolean> {
 
   const text = ctx.message.text.trim();
 
-  // --- Создание бюджета ---
+  // -------------------------------------------------------------------------
+  // Создание бюджета
+  // -------------------------------------------------------------------------
   if (state.type === 'create-budget' && state.step === 'awaiting-total-limit') {
     const amount = parseMoney(text);
     if (amount === null || amount > MAX_TOTAL_LIMIT) {
@@ -40,7 +48,9 @@ export async function handleWizardText(ctx: BotContext): Promise<boolean> {
     return true;
   }
 
-  // --- Создание категории ---
+  // -------------------------------------------------------------------------
+  // Создание категории
+  // -------------------------------------------------------------------------
   if (state.type === 'create-category') {
     if (!ctx.appContext) {
       clearWizard(ctx.from.id);
@@ -54,6 +64,7 @@ export async function handleWizardText(ctx: BotContext): Promise<boolean> {
         await ctx.reply('Название от 1 до 50 символов. Попробуйте снова.');
         return true;
       }
+
       setWizard(ctx.from.id, {
         type: 'create-category',
         step: 'awaiting-limit',
@@ -98,6 +109,37 @@ export async function handleWizardText(ctx: BotContext): Promise<boolean> {
         }
         throw err;
       }
+      return true;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Добавление расхода
+  // -------------------------------------------------------------------------
+  if (state.type === 'add-expense') {
+    if (!ctx.appContext) {
+      clearWizard(ctx.from.id);
+      await ctx.reply('Нет активного бюджета.');
+      return true;
+    }
+
+    if (state.step === 'awaiting-amount') {
+      return handleExpenseAmountInput(ctx, text, state);
+    }
+
+    if (state.step === 'awaiting-comment') {
+      const comment = text.length > MAX_COMMENT_LENGTH ? text.slice(0, MAX_COMMENT_LENGTH) : text;
+      await goToConfirmation(ctx, { ...state, comment });
+      return true;
+    }
+
+    if (state.step === 'awaiting-confirmation') {
+      await ctx.reply('Нажмите «Подтвердить» или «Отмена» на клавиатуре выше.');
+      return true;
+    }
+
+    if (state.step === 'awaiting-category') {
+      await ctx.reply('Выберите категорию из списка кнопок выше.');
       return true;
     }
   }

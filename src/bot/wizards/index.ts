@@ -7,9 +7,11 @@ export type WizardState =
     }
   | {
       type: 'add-expense';
-      step: 'awaiting-amount' | 'awaiting-category' | 'awaiting-comment';
+      step: 'awaiting-amount' | 'awaiting-category' | 'awaiting-comment' | 'awaiting-confirmation';
       amount?: number;
       categoryId?: number;
+      comment?: string | null;
+      willExceed?: boolean;
     };
 
 const states = new Map<number, WizardState>();
