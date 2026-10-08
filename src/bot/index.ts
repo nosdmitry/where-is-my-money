@@ -1,5 +1,4 @@
 import { Bot, type BotConfig } from 'grammy';
-import { SocksProxyAgent } from 'socks-proxy-agent';
 import { env } from '../config/env.js';
 import { cancelCommand, menuCommand, onCreateBudgetClick, startCommand } from './commands/start.js';
 import {
@@ -12,6 +11,7 @@ import {
   onSettingsMain,
   settingsCommand,
 } from './commands/settings.js';
+import { onSettingsInvite } from './commands/invite.js';
 import {
   onAddExpense,
   onExpenseCancel,
@@ -19,24 +19,27 @@ import {
   onExpenseConfirm,
   onExpenseSkipComment,
 } from './commands/expense.js';
+import { onShowBalance } from './commands/balance.js';
+import { onShowReport, onExportCsv } from './commands/report.js';
+import {
+  onShowHistory,
+  onHistoryPage,
+  onHistoryDelete,
+  onHistoryNoop,
+} from './commands/history.js';
 import type { BotContext } from './context.js';
 import { authMiddleware } from './middlewares/auth.js';
 import { errorMiddleware } from './middlewares/error.js';
 import { handleWizardText } from './wizards/handle.js';
-import { onShowBalance } from './commands/balance.js';
-import {
-  onHistoryPage,
-  onHistoryDelete,
-  onHistoryNoop,
-  onShowHistory,
-} from './commands/history.js';
-import { onExportCsv, onShowReport } from './commands/report.js';
-import { onSettingsInvite } from './commands/invite.js';
 
-export function createBot(): Bot<BotContext> {
+export async function createBot(): Promise<Bot<BotContext>> {
   const config: BotConfig<BotContext> = {};
 
+  // Прокси нужен только локально, в разработке.
+  // Динамический импорт: socks-proxy-agent живёт в devDependencies
+  // и не попадает в production-образ.
   if (env.NODE_ENV === 'development' && env.SOCKS_PROXY_URL) {
+    const { SocksProxyAgent } = await import('socks-proxy-agent');
     config.client = {
       baseFetchConfig: {
         agent: new SocksProxyAgent(env.SOCKS_PROXY_URL),
@@ -62,33 +65,34 @@ export function createBot(): Bot<BotContext> {
   bot.hears('📊 Отчёт', onShowReport);
   bot.hears('📜 История', onShowHistory);
 
-  // Настройки — закрытие бюджета
-  bot.callbackQuery('settings:delete', onDeleteBudgetClick);
-  bot.callbackQuery('settings:delete:confirm', onDeleteBudgetConfirm);
-  bot.callbackQuery('settings:delete:cancel', onDeleteBudgetCancel);
-
-  // Настройки — инвайт
-  bot.callbackQuery('settings:invite', onSettingsInvite);
-
-  bot.callbackQuery('report:csv', onExportCsv);
-  bot.callbackQuery(/^hist:page:\d+$/, onHistoryPage);
-  bot.callbackQuery(/^hist:del:\d+$/, onHistoryDelete);
-  bot.callbackQuery('hist:noop', onHistoryNoop);
-
   // Inline: создание бюджета
   bot.callbackQuery('wizard:create-budget', onCreateBudgetClick);
 
   // Inline: настройки
   bot.callbackQuery('settings:main', onSettingsMain);
   bot.callbackQuery('settings:categories', onSettingsCategories);
+  bot.callbackQuery('settings:invite', onSettingsInvite);
   bot.callbackQuery('wizard:create-category', onCreateCategoryClick);
   bot.callbackQuery('wizard:cancel', onCancelWizard);
+
+  // Inline: закрытие бюджета
+  bot.callbackQuery('settings:delete', onDeleteBudgetClick);
+  bot.callbackQuery('settings:delete:confirm', onDeleteBudgetConfirm);
+  bot.callbackQuery('settings:delete:cancel', onDeleteBudgetCancel);
 
   // Inline: расходы
   bot.callbackQuery(/^expense:cat:\d+$/, onExpenseCategoryChosen);
   bot.callbackQuery('expense:skip-comment', onExpenseSkipComment);
   bot.callbackQuery('expense:confirm', onExpenseConfirm);
   bot.callbackQuery('expense:cancel', onExpenseCancel);
+
+  // Inline: отчёт
+  bot.callbackQuery('report:csv', onExportCsv);
+
+  // Inline: история
+  bot.callbackQuery(/^hist:page:\d+$/, onHistoryPage);
+  bot.callbackQuery(/^hist:del:\d+$/, onHistoryDelete);
+  bot.callbackQuery('hist:noop', onHistoryNoop);
 
   // Wizard перехватывает текст последним
   bot.on('message:text', async (ctx, next) => {

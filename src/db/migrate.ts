@@ -1,7 +1,10 @@
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import { sqlite, db } from './client.js';
+import { db } from './client.js';
 
-migrate(db, { migrationsFolder: './src/db/migrations' });
-
-console.log('✅ Migrations applied');
-sqlite.close();
+/**
+ * Применяет миграции из указанной папки.
+ * Вызывается при старте приложения и из CLI.
+ */
+export function runMigrations(migrationsFolder: string): void {
+  migrate(db, { migrationsFolder });
+}
