@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 const envSchema = z.object({
+  SOCKS_PROXY_URL: z.string(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   BOT_TOKEN: z.string().min(1, 'BOT_TOKEN is required'),
   DATABASE_PATH: z.string().default('./data/budget.db'),
