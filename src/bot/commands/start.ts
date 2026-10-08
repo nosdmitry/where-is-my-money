@@ -10,6 +10,7 @@ import { periodLabel } from '../../utils/date.js';
 import { mainMenuKeyboard } from '../keyboards/main.js';
 import { clearWizard, setWizard } from '../wizards/index.js';
 import type { BotContext } from '../context.js';
+import { pickRandom } from '../../utils/random.js';
 
 export async function startCommand(ctx: BotContext): Promise<void> {
   if (!ctx.user || !ctx.from) return;
@@ -29,19 +30,37 @@ export async function startCommand(ctx: BotContext): Promise<void> {
   // Уже в бюджете — показываем меню
   const app = getContextByUserId(ctx.user.id);
   if (app) {
-    await ctx.reply('Главное меню:', {
+    const quips = [
+      'С возвращением. Деньги всё ещё тут. Пока что.',
+      'Снова ты. Хорошо, что не с новыми тратами. Хотя...',
+      'Бюджет на месте. Совесть — тоже?',
+      'Открываю меню. Считай это финансовой медитацией.',
+    ];
+    const quip = pickRandom(quips);
+
+    await ctx.reply(quip, {
       reply_markup: mainMenuKeyboard(app.membership.role === 'admin'),
     });
     return;
   }
 
   // Новый пользователь
-  const kb = new InlineKeyboard().text('Создать бюджет', 'wizard:create-budget');
+  const kb = new InlineKeyboard().text('💸 Создать бюджет', 'wizard:create-budget');
   await ctx.reply(
-    '👋 Привет! Я помогу вести семейный бюджет.\n\n' +
-      'Один человек (администратор) задаёт лимит на месяц и распределяет его по категориям.\n' +
-      'Остальные участники вносят свои траты.\n\n' +
-      'Создать бюджет?',
+    [
+      '👋 Привет.',
+      '',
+      'Если ты здесь — значит, деньги куда-то исчезают. Регулярно. ' +
+        'Бесследно. Как носки в стиральной машине, только дороже.',
+      '',
+      'Я помогу навести порядок:',
+      '— задать лимит на месяц,',
+      '— разложить его по категориям,',
+      '— записывать каждую трату,',
+      '— и наконец понять, куда уходит зарплата.',
+      '',
+      'Обещаю не осуждать. Ну, почти.',
+    ].join('\n'),
     { reply_markup: kb },
   );
 }
