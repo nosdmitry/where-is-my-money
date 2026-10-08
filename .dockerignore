@@ -1,0 +1,13 @@
+node_modules
+dist
+data
+backups
+.env
+.git
+.gitignore
+.vscode
+.idea
+*.md
+deploy.sh
+src/smoke.ts
+src/test-cron.ts
