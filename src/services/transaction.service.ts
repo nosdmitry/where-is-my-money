@@ -96,19 +96,6 @@ export function getSpendingByAuthor(periodId: number): MemberSpending[] {
     }));
 }
 
-/**
- * Топ-N крупнейших трат периода.
- */
-export function getTopTransactions(periodId: number, n: number = 5): Transaction[] {
-  return db
-    .select()
-    .from(transactions)
-    .where(eq(transactions.budgetPeriodId, periodId))
-    .orderBy(desc(transactions.amount))
-    .limit(n)
-    .all();
-}
-
 // ---------------------------------------------------------------------------
 // Создание
 // ---------------------------------------------------------------------------
@@ -306,4 +293,71 @@ export function listTransactionsBetween(periodId: number, from: Date, to: Date):
  */
 export function describeTransaction(t: Transaction): string {
   return `#${t.id} ${t.amount}₽ ${formatDateTimeShort(t.spentAt, 'Europe/Moscow')}`;
+}
+
+// ---------------------------------------------------------------------------
+// Детализированные выборки (с именем категории и автором)
+// ---------------------------------------------------------------------------
+
+export type DetailedTransaction = {
+  id: number;
+  amount: number;
+  comment: string | null;
+  spentAt: Date;
+  categoryName: string;
+  authorFirstName: string;
+  authorUsername: string | null;
+};
+
+/**
+ * Список транзакций с деталями для отображения в истории.
+ */
+export function listTransactionsDetailed(
+  periodId: number,
+  limit: number,
+  offset: number,
+): DetailedTransaction[] {
+  return db
+    .select({
+      id: transactions.id,
+      amount: transactions.amount,
+      comment: transactions.comment,
+      spentAt: transactions.spentAt,
+      categoryName: categories.name,
+      authorFirstName: users.firstName,
+      authorUsername: users.username,
+    })
+    .from(transactions)
+    .innerJoin(categories, eq(categories.id, transactions.categoryId))
+    .innerJoin(memberships, eq(memberships.id, transactions.authorMembershipId))
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .where(eq(transactions.budgetPeriodId, periodId))
+    .orderBy(desc(transactions.spentAt), desc(transactions.id))
+    .limit(limit)
+    .offset(offset)
+    .all();
+}
+
+/**
+ * Топ-N крупнейших трат периода с деталями.
+ */
+export function getTopTransactionsDetailed(periodId: number, n: number): DetailedTransaction[] {
+  return db
+    .select({
+      id: transactions.id,
+      amount: transactions.amount,
+      comment: transactions.comment,
+      spentAt: transactions.spentAt,
+      categoryName: categories.name,
+      authorFirstName: users.firstName,
+      authorUsername: users.username,
+    })
+    .from(transactions)
+    .innerJoin(categories, eq(categories.id, transactions.categoryId))
+    .innerJoin(memberships, eq(memberships.id, transactions.authorMembershipId))
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .where(eq(transactions.budgetPeriodId, periodId))
+    .orderBy(desc(transactions.amount))
+    .limit(n)
+    .all();
 }

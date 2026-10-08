@@ -21,6 +21,13 @@ import { authMiddleware } from './middlewares/auth.js';
 import { errorMiddleware } from './middlewares/error.js';
 import { handleWizardText } from './wizards/handle.js';
 import { onShowBalance } from './commands/balance.js';
+import {
+  onHistoryPage,
+  onHistoryDelete,
+  onHistoryNoop,
+  onShowHistory,
+} from './commands/history.js';
+import { onExportCsv, onShowReport } from './commands/report.js';
 
 export function createBot(): Bot<BotContext> {
   const config: BotConfig<BotContext> = {};
@@ -48,6 +55,13 @@ export function createBot(): Bot<BotContext> {
   bot.hears('⚙️ Настройки', settingsCommand);
   bot.hears('➕ Расход', onAddExpense);
   bot.hears('💰 Остатки', onShowBalance);
+  bot.hears('📊 Отчёт', onShowReport);
+  bot.hears('📜 История', onShowHistory);
+
+  bot.callbackQuery('report:csv', onExportCsv);
+  bot.callbackQuery(/^hist:page:\d+$/, onHistoryPage);
+  bot.callbackQuery(/^hist:del:\d+$/, onHistoryDelete);
+  bot.callbackQuery('hist:noop', onHistoryNoop);
 
   // Inline: создание бюджета
   bot.callbackQuery('wizard:create-budget', onCreateBudgetClick);
