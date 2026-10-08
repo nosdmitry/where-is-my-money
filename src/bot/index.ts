@@ -5,6 +5,9 @@ import { cancelCommand, menuCommand, onCreateBudgetClick, startCommand } from '.
 import {
   onCancelWizard,
   onCreateCategoryClick,
+  onDeleteBudgetCancel,
+  onDeleteBudgetClick,
+  onDeleteBudgetConfirm,
   onSettingsCategories,
   onSettingsMain,
   settingsCommand,
@@ -59,7 +62,14 @@ export function createBot(): Bot<BotContext> {
   bot.hears('📊 Отчёт', onShowReport);
   bot.hears('📜 История', onShowHistory);
 
+  // Настройки — закрытие бюджета
+  bot.callbackQuery('settings:delete', onDeleteBudgetClick);
+  bot.callbackQuery('settings:delete:confirm', onDeleteBudgetConfirm);
+  bot.callbackQuery('settings:delete:cancel', onDeleteBudgetCancel);
+
+  // Настройки — инвайт
   bot.callbackQuery('settings:invite', onSettingsInvite);
+
   bot.callbackQuery('report:csv', onExportCsv);
   bot.callbackQuery(/^hist:page:\d+$/, onHistoryPage);
   bot.callbackQuery(/^hist:del:\d+$/, onHistoryDelete);

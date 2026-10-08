@@ -170,3 +170,7 @@ export function isHouseholdEmpty(householdId: number): boolean {
 
   return true;
 }
+
+export function listActiveHouseholds(): Household[] {
+  return db.select().from(households).where(eq(households.status, 'active')).all();
+}
