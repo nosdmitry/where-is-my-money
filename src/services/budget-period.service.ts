@@ -65,7 +65,7 @@ function assertActive(period: BudgetPeriod): void {
   }
 }
 
-function getSystemCategory(periodId: number): Category | null {
+export function getSystemCategory(periodId: number): Category | null {
   return (
     db
       .select()
@@ -75,7 +75,7 @@ function getSystemCategory(periodId: number): Category | null {
   );
 }
 
-function getNonSystemCategoriesSum(periodId: number): number {
+export function getNonSystemCategoriesSum(periodId: number): number {
   const row = db
     .select({ sum: sql<number>`COALESCE(SUM(${categories.limitAmount}), 0)` })
     .from(categories)
