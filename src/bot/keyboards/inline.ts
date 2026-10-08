@@ -29,9 +29,19 @@ export function settingsKeyboard(): InlineKeyboard {
     .text('🗑 Удалить бюджет', 'settings:delete');
 }
 
-export function categoriesKeyboard(): InlineKeyboard {
-  return new InlineKeyboard()
-    .text('➕ Создать категорию', 'wizard:create-category')
-    .row()
-    .text('⬅️ Назад', 'settings:main');
+export function categoriesKeyboard(
+  categories?: Array<{ id: number; name: string; isSystem: boolean }>,
+): InlineKeyboard {
+  const kb = new InlineKeyboard();
+
+  if (categories && categories.length > 0) {
+    for (const c of categories) {
+      kb.text(c.name, `cat:view:${c.id}`).row();
+    }
+  }
+
+  kb.text('➕ Создать категорию', 'wizard:create-category').row();
+  kb.text('⬅️ Назад', 'settings:main');
+
+  return kb;
 }

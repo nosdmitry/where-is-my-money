@@ -285,3 +285,38 @@ export function deleteCategory(categoryId: number): void {
       .run();
   });
 }
+
+/**
+ * Переименовывает обычную категорию.
+ * Проверяет на дубликат (case-insensitive).
+ */
+export function renameCategory(categoryId: number, rawName: string): Category {
+  const name = validateName(rawName);
+
+  const category = getCategoryById(categoryId);
+  if (!category) throw new NotFoundError('Category', categoryId);
+  if (category.isSystem) {
+    throw new ValidationError('Системную категорию нельзя переименовать');
+  }
+
+  const period = getPeriodById(category.budgetPeriodId);
+  if (!period) throw new NotFoundError('BudgetPeriod', category.budgetPeriodId);
+  if (period.status !== 'active') throw new PeriodArchivedError();
+
+  const duplicate = db
+    .select()
+    .from(categories)
+    .where(
+      and(
+        eq(categories.budgetPeriodId, category.budgetPeriodId),
+        sql`LOWER(${categories.name}) = LOWER(${name})`,
+        sql`${categories.id} != ${categoryId}`,
+      ),
+    )
+    .get();
+  if (duplicate) {
+    throw new ConflictError(`Категория «${name}» уже существует`);
+  }
+
+  return db.update(categories).set({ name }).where(eq(categories.id, categoryId)).returning().get();
+}

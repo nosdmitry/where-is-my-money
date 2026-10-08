@@ -12,7 +12,10 @@ export type WizardState =
       categoryId?: number;
       comment?: string | null;
       willExceed?: boolean;
-    };
+    }
+  | { type: 'edit-total-limit'; step: 'awaiting-limit' }
+  | { type: 'rename-category'; step: 'awaiting-name'; categoryId: number }
+  | { type: 'edit-category-limit'; step: 'awaiting-limit'; categoryId: number };
 
 const states = new Map<number, WizardState>();
 

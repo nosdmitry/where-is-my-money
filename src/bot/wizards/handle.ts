@@ -1,5 +1,10 @@
 import type { BotContext } from '../context.js';
-import { createCategory, listCategoriesWithStats } from '../../services/category.service.js';
+import {
+  createCategory,
+  listCategoriesWithStats,
+  renameCategory,
+  updateCategoryLimit,
+} from '../../services/category.service.js';
 import { createHousehold } from '../../services/household.service.js';
 import { InsufficientFundsError } from '../../domain/errors.js';
 import { formatMoney, parseMoney } from '../../utils/money.js';
@@ -7,6 +12,7 @@ import { periodLabel } from '../../utils/date.js';
 import { categoriesKeyboard } from '../keyboards/inline.js';
 import { goToConfirmation, handleExpenseAmountInput } from '../commands/expense.js';
 import { clearWizard, getWizard, setWizard } from './index.js';
+import { updateTotalLimit } from '../../services/budget-period.service.js';
 
 const MAX_TOTAL_LIMIT = 1_000_000_000;
 const MAX_CATEGORY_LIMIT = 1_000_000_000;
@@ -142,6 +148,85 @@ export async function handleWizardText(ctx: BotContext): Promise<boolean> {
       await ctx.reply('Выберите категорию из списка кнопок выше.');
       return true;
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Редактирование общего лимита
+  // -------------------------------------------------------------------------
+  if (state.type === 'edit-total-limit') {
+    if (!ctx.appContext) {
+      clearWizard(ctx.from.id);
+      await ctx.reply('Нет активного бюджета.');
+      return true;
+    }
+
+    const amount = parseMoney(text);
+    if (amount === null) {
+      await ctx.reply('Введите целое положительное число.');
+      return true;
+    }
+
+    try {
+      updateTotalLimit(ctx.appContext.activePeriod.id, amount);
+      clearWizard(ctx.from.id);
+      await ctx.reply(`✅ Новый лимит: ${formatMoney(amount)}`);
+    } catch (err) {
+      if (err instanceof InsufficientFundsError) {
+        await ctx.reply(`❌ Нельзя: сумма лимитов категорий уже ${formatMoney(err.available)}.`);
+        return true;
+      }
+      throw err;
+    }
+    return true;
+  }
+
+  // -------------------------------------------------------------------------
+  // Переименование категории
+  // -------------------------------------------------------------------------
+  if (state.type === 'rename-category') {
+    const name = text;
+    if (name.length === 0 || name.length > 50) {
+      await ctx.reply('Название от 1 до 50 символов.');
+      return true;
+    }
+
+    const category = renameCategory(state.categoryId, name);
+    clearWizard(ctx.from.id);
+    await ctx.reply(`✅ Категория переименована: «${category.name}»`);
+    return true;
+  }
+
+  // -------------------------------------------------------------------------
+  // Изменение лимита категории
+  // -------------------------------------------------------------------------
+  if (state.type === 'edit-category-limit') {
+    const limit = parseMoney(text);
+    if (limit === null) {
+      await ctx.reply('Введите целое положительное число.');
+      return true;
+    }
+
+    try {
+      const result = updateCategoryLimit(state.categoryId, limit);
+      clearWizard(ctx.from.id);
+
+      const lines = [
+        `✅ Новый лимит «${result.category.name}»: ${formatMoney(result.category.limitAmount)}`,
+      ];
+      if (result.spent > result.category.limitAmount) {
+        lines.push(`⚠️ Уже потрачено ${formatMoney(result.spent)} — лимит превышен.`);
+      }
+      await ctx.reply(lines.join('\n'));
+    } catch (err) {
+      if (err instanceof InsufficientFundsError) {
+        await ctx.reply(
+          `❌ Недостаточно свободных средств.\nДоступно: ${formatMoney(err.available)}`,
+        );
+        return true;
+      }
+      throw err;
+    }
+    return true;
   }
 
   return false;

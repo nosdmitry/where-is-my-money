@@ -3,10 +3,17 @@ import { env } from '../config/env.js';
 import { cancelCommand, menuCommand, onCreateBudgetClick, startCommand } from './commands/start.js';
 import {
   onCancelWizard,
+  onCategoryArchive,
+  onCategoryDelete,
+  onCategoryEditLimit,
+  onCategoryRename,
+  onCategoryView,
   onCreateCategoryClick,
   onDeleteBudgetCancel,
   onDeleteBudgetClick,
   onDeleteBudgetConfirm,
+  onSettingsBudget,
+  onSettingsBudgetEdit,
   onSettingsCategories,
   onSettingsMain,
   settingsCommand,
@@ -31,6 +38,7 @@ import type { BotContext } from './context.js';
 import { authMiddleware } from './middlewares/auth.js';
 import { errorMiddleware } from './middlewares/error.js';
 import { handleWizardText } from './wizards/handle.js';
+import { onShowMembers } from './commands/members.js';
 
 export async function createBot(): Promise<Bot<BotContext>> {
   const config: BotConfig<BotContext> = {};
@@ -64,6 +72,7 @@ export async function createBot(): Promise<Bot<BotContext>> {
   bot.hears('💰 Остатки', onShowBalance);
   bot.hears('📊 Отчёт', onShowReport);
   bot.hears('📜 История', onShowHistory);
+  bot.hears('👥 Участники', onShowMembers);
 
   // Inline: создание бюджета
   bot.callbackQuery('wizard:create-budget', onCreateBudgetClick);
@@ -75,10 +84,21 @@ export async function createBot(): Promise<Bot<BotContext>> {
   bot.callbackQuery('wizard:create-category', onCreateCategoryClick);
   bot.callbackQuery('wizard:cancel', onCancelWizard);
 
+  // Бюджет месяца
+  bot.callbackQuery('settings:budget', onSettingsBudget);
+  bot.callbackQuery('settings:budget:edit', onSettingsBudgetEdit);
+
   // Inline: закрытие бюджета
   bot.callbackQuery('settings:delete', onDeleteBudgetClick);
   bot.callbackQuery('settings:delete:confirm', onDeleteBudgetConfirm);
   bot.callbackQuery('settings:delete:cancel', onDeleteBudgetCancel);
+
+  // Карточка категории
+  bot.callbackQuery(/^cat:view:\d+$/, onCategoryView);
+  bot.callbackQuery(/^cat:rename:\d+$/, onCategoryRename);
+  bot.callbackQuery(/^cat:limit:\d+$/, onCategoryEditLimit);
+  bot.callbackQuery(/^cat:archive:\d+$/, onCategoryArchive);
+  bot.callbackQuery(/^cat:delete:\d+$/, onCategoryDelete);
 
   // Inline: расходы
   bot.callbackQuery(/^expense:cat:\d+$/, onExpenseCategoryChosen);
