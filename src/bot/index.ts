@@ -2,28 +2,31 @@ import { Bot, type BotConfig } from 'grammy';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { env } from '../config/env.js';
 import { cancelCommand, menuCommand, onCreateBudgetClick, startCommand } from './commands/start.js';
+import {
+  onCancelWizard,
+  onCreateCategoryClick,
+  onSettingsCategories,
+  onSettingsMain,
+  settingsCommand,
+} from './commands/settings.js';
 import type { BotContext } from './context.js';
 import { authMiddleware } from './middlewares/auth.js';
 import { errorMiddleware } from './middlewares/error.js';
 import { handleWizardText } from './wizards/handle.js';
 
 export function createBot(): Bot<BotContext> {
-  // 1. Создаем пустой объект конфигурации
   const config: BotConfig<BotContext> = {};
 
-  // 2. Если режим разработки, добавляем SOCKS5 агент от INCY
-  if (env.NODE_ENV === 'development') {
+  if (env.NODE_ENV === 'development' && env.SOCKS_PROXY_URL) {
     config.client = {
       baseFetchConfig: {
-        agent: new SocksProxyAgent(`${env.SOCKS_PROXY_URL}`),
+        agent: new SocksProxyAgent(env.SOCKS_PROXY_URL),
       },
     };
   }
 
-  // 3. Передаем конфигурацию при создании экземпляра
   const bot = new Bot<BotContext>(env.BOT_TOKEN, config);
 
-  // Порядок важен: сначала error, потом auth, потом всё остальное.
   bot.use(errorMiddleware);
   bot.use(authMiddleware);
 
@@ -31,12 +34,21 @@ export function createBot(): Bot<BotContext> {
   bot.command('start', startCommand);
   bot.command('menu', menuCommand);
   bot.command('cancel', cancelCommand);
+  bot.command('settings', settingsCommand);
 
-  // Inline-кнопки
+  // Reply-кнопки
+  bot.hears('⚙️ Настройки', settingsCommand);
+
+  // Inline: создание бюджета
   bot.callbackQuery('wizard:create-budget', onCreateBudgetClick);
 
-  // Перехват текстового ввода в wizard'ах.
-  // Если wizard не взял — пропускаем дальше.
+  // Inline: настройки
+  bot.callbackQuery('settings:main', onSettingsMain);
+  bot.callbackQuery('settings:categories', onSettingsCategories);
+  bot.callbackQuery('wizard:create-category', onCreateCategoryClick);
+  bot.callbackQuery('wizard:cancel', onCancelWizard);
+
+  // Wizard перехватывает текст последним
   bot.on('message:text', async (ctx, next) => {
     const handled = await handleWizardText(ctx);
     if (!handled) await next();
