@@ -5,6 +5,7 @@ import {
   categories,
   households,
   memberships,
+  transactions,
   type BudgetPeriod,
   type Household,
   type Membership,
@@ -143,37 +144,29 @@ export function closeHousehold(householdId: number, requestingUserId: number): v
 
 /**
  * Проверяет, пустой ли household.
- * Пустой = одна системная категория во всех периодах, нет транзакций,
- * и только один участник.
- * Используется при инвайтах: если у приглашённого есть пустой household — его можно перетереть.
+ * Пустой = один участник, нет транзакций, нет несистемных категорий.
  */
 export function isHouseholdEmpty(householdId: number): boolean {
-  const memberships_ = getHouseholdMembers(householdId);
-  if (memberships_.length > 1) return false;
+  const members = getHouseholdMembers(householdId);
+  if (members.length > 1) return false;
 
-  const periods = db
-    .select()
-    .from(budgetPeriods)
+  const tx = db
+    .select({ id: transactions.id })
+    .from(transactions)
+    .innerJoin(budgetPeriods, eq(budgetPeriods.id, transactions.budgetPeriodId))
     .where(eq(budgetPeriods.householdId, householdId))
-    .all();
+    .limit(1)
+    .get();
+  if (tx) return false;
 
-  // Проверим, что во всех периодах только системная категория
-  for (const period of periods) {
-    const cats = db.select().from(categories).where(eq(categories.budgetPeriodId, period.id)).all();
-    if (cats.length > 1) return false;
-    if (cats.length === 1 && !cats[0]!.isSystem) return false;
-  }
-
-  // Транзакции
-  const hasTransactions = periods.some((p) => {
-    const row = db
-      .select({ id: budgetPeriods.id })
-      .from(budgetPeriods)
-      .where(eq(budgetPeriods.id, p.id))
-      .get();
-    return row === undefined;
-  });
-  if (hasTransactions) return false;
+  const nonSystem = db
+    .select({ id: categories.id })
+    .from(categories)
+    .innerJoin(budgetPeriods, eq(budgetPeriods.id, categories.budgetPeriodId))
+    .where(and(eq(budgetPeriods.householdId, householdId), eq(categories.isSystem, false)))
+    .limit(1)
+    .get();
+  if (nonSystem) return false;
 
   return true;
 }
