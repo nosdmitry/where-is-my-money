@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import {
   budgetPeriods,
@@ -122,24 +122,60 @@ export function getContextByUserId(userId: number): HouseholdContext | null {
 }
 
 /**
- * Помечает household как закрытый. Ставит deleted_at = now().
- * Только owner может закрыть.
- * Hard delete произойдёт через HOUSEHOLD_HARD_DELETE_DAYS дней (cron, шаг позже).
+ * Обнуляет все транзакции активного периода.
+ * Категории, лимиты, участники, архив — остаются.
  */
-export function closeHousehold(householdId: number, requestingUserId: number): void {
+export function resetCurrentPeriod(householdId: number, requestingUserId: number): number {
+  const household = getHouseholdById(householdId);
+  if (!household) throw new NotFoundError('Household', householdId);
+
+  const membership = getMembershipByUserId(requestingUserId);
+  if (!membership || membership.householdId !== householdId) {
+    throw new PermissionError();
+  }
+  if (membership.role !== 'admin') {
+    throw new PermissionError('Только администратор может сбросить месяц');
+  }
+
+  const active = db
+    .select()
+    .from(budgetPeriods)
+    .where(and(eq(budgetPeriods.householdId, householdId), eq(budgetPeriods.status, 'active')))
+    .get();
+
+  if (!active) return 0;
+
+  const result = db.delete(transactions).where(eq(transactions.budgetPeriodId, active.id)).run();
+
+  return result.changes;
+}
+
+/**
+ * Полностью удаляет household и все связанные данные.
+ * Только владелец. Записи в users не удаляются.
+ */
+export function deleteHousehold(householdId: number, requestingUserId: number): void {
   const household = getHouseholdById(householdId);
   if (!household) throw new NotFoundError('Household', householdId);
 
   if (household.ownerUserId !== requestingUserId) {
-    throw new PermissionError('Только владелец может закрыть бюджет');
+    throw new PermissionError('Только владелец может удалить бюджет');
   }
 
-  if (household.status === 'closed') return;
+  db.transaction((tx) => {
+    const periodIds = tx
+      .select({ id: budgetPeriods.id })
+      .from(budgetPeriods)
+      .where(eq(budgetPeriods.householdId, householdId))
+      .all()
+      .map((p) => p.id);
 
-  db.update(households)
-    .set({ status: 'closed', deletedAt: new Date() })
-    .where(eq(households.id, householdId))
-    .run();
+    if (periodIds.length > 0) {
+      tx.delete(transactions).where(inArray(transactions.budgetPeriodId, periodIds)).run();
+    }
+
+    tx.delete(households).where(eq(households.id, householdId)).run();
+  });
 }
 
 /**

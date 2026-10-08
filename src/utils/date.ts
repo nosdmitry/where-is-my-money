@@ -15,21 +15,6 @@ const MONTH_NAMES = [
   'Декабрь',
 ] as const;
 
-const MONTH_NAMES_GENITIVE = [
-  'января',
-  'февраля',
-  'марта',
-  'апреля',
-  'мая',
-  'июня',
-  'июля',
-  'августа',
-  'сентября',
-  'октября',
-  'ноября',
-  'декабря',
-] as const;
-
 /** Возвращает текущий год и месяц в указанном часовом поясе. */
 export function currentPeriodKey(timezone: string, now: Date = new Date()): PeriodKey {
   const fmt = new Intl.DateTimeFormat('en-CA', {

@@ -4,9 +4,6 @@ export const FREE_CATEGORY_NAME = 'Свободные средства';
 /** Время жизни инвайта. */
 export const INVITE_TTL_HOURS = 24;
 
-/** Через сколько дней после закрытия household удаляется безвозвратно. */
-export const HOUSEHOLD_HARD_DELETE_DAYS = 30;
-
 /** Часовой пояс по умолчанию. */
 export const DEFAULT_TIMEZONE = 'Europe/Moscow';
 

@@ -26,7 +26,9 @@ export function settingsKeyboard(): InlineKeyboard {
     .row()
     .text('✉️ Пригласить', 'settings:invite')
     .row()
-    .text('🗑 Удалить бюджет', 'settings:delete');
+    .text('♻️ Сбросить текущий месяц', 'settings:reset')
+    .row()
+    .text('🗑 Удалить бюджет полностью', 'settings:delete');
 }
 
 export function categoriesKeyboard(

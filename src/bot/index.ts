@@ -12,6 +12,9 @@ import {
   onDeleteBudgetCancel,
   onDeleteBudgetClick,
   onDeleteBudgetConfirm,
+  onResetPeriodCancel,
+  onResetPeriodClick,
+  onResetPeriodConfirm,
   onSettingsBudget,
   onSettingsBudgetEdit,
   onSettingsCategories,
@@ -92,6 +95,11 @@ export async function createBot(): Promise<Bot<BotContext>> {
   bot.callbackQuery('settings:delete', onDeleteBudgetClick);
   bot.callbackQuery('settings:delete:confirm', onDeleteBudgetConfirm);
   bot.callbackQuery('settings:delete:cancel', onDeleteBudgetCancel);
+
+  // Сброс текущего месяца
+  bot.callbackQuery('settings:reset', onResetPeriodClick);
+  bot.callbackQuery('settings:reset:confirm', onResetPeriodConfirm);
+  bot.callbackQuery('settings:reset:cancel', onResetPeriodCancel);
 
   // Карточка категории
   bot.callbackQuery(/^cat:view:\d+$/, onCategoryView);

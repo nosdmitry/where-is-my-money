@@ -3,7 +3,7 @@ import { settingsKeyboard, categoriesKeyboard } from '../keyboards/inline.js';
 import { formatCategoriesList } from '../texts/format.js';
 import { clearWizard, setWizard } from '../wizards/index.js';
 import { InlineKeyboard } from 'grammy';
-import { closeHousehold } from '../../services/household.service.js';
+import { deleteHousehold, resetCurrentPeriod } from '../../services/household.service.js';
 import { getHouseholdTelegramIds } from '../../services/notification.service.js';
 import {
   archiveCategory,
@@ -77,24 +77,78 @@ export async function onCancelWizard(ctx: BotContext): Promise<void> {
   await ctx.editMessageText('Отменено.');
 }
 
+// ---------------------------------------------------------------------------
+// Сброс текущего месяца
+// ---------------------------------------------------------------------------
+
+export async function onResetPeriodClick(ctx: BotContext): Promise<void> {
+  await ctx.answerCallbackQuery();
+  if (!ctx.appContext) return;
+
+  if (ctx.appContext.membership.role !== 'admin') {
+    await ctx.reply('⛔️ Только администратор.');
+    return;
+  }
+
+  const kb = new InlineKeyboard()
+    .text('♻️ Да, сбросить', 'settings:reset:confirm')
+    .text('❌ Отмена', 'settings:reset:cancel');
+
+  await ctx.editMessageText(
+    '♻️ Сбросить текущий месяц?\n\n' +
+      'Будут удалены все траты за текущий месяц.\n' +
+      'Категории, лимиты и участники останутся.\n' +
+      'Прошлые месяцы в архиве тоже останутся.\n\n' +
+      'Продолжить?',
+    { reply_markup: kb },
+  );
+}
+
+export async function onResetPeriodConfirm(ctx: BotContext): Promise<void> {
+  await ctx.answerCallbackQuery();
+  if (!ctx.user || !ctx.appContext) return;
+  if (ctx.appContext.membership.role !== 'admin') return;
+
+  const removed = resetCurrentPeriod(ctx.appContext.household.id, ctx.user.id);
+
+  await ctx
+    .editMessageText(
+      `♻️ Готово. Удалено ${removed} ${plural(removed, 'трата', 'траты', 'трат')}.\n\n` +
+        `Можно вносить траты заново.`,
+    )
+    .catch(() => undefined);
+}
+
+export async function onResetPeriodCancel(ctx: BotContext): Promise<void> {
+  await ctx.answerCallbackQuery();
+  await ctx.editMessageText('Отменено.').catch(() => undefined);
+}
+
+// ---------------------------------------------------------------------------
+// Удаление бюджета целиком
+// ---------------------------------------------------------------------------
+
 export async function onDeleteBudgetClick(ctx: BotContext): Promise<void> {
   await ctx.answerCallbackQuery();
   if (!ctx.appContext) return;
 
   if (ctx.appContext.membership.role !== 'admin') {
-    await ctx.reply('⛔️ Только администратор может закрыть бюджет.');
+    await ctx.reply('⛔️ Только администратор может удалить бюджет.');
     return;
   }
 
   const kb = new InlineKeyboard()
-    .text('🗑 Да, закрыть', 'settings:delete:confirm')
+    .text('🗑 Да, удалить всё', 'settings:delete:confirm')
     .text('❌ Отмена', 'settings:delete:cancel');
 
   await ctx.editMessageText(
-    '⚠️ Это действие:\n' +
-      '— закроет бюджет для всех участников,\n' +
-      '— через 30 дней удалит все данные безвозвратно.\n\n' +
-      'Вы уверены?',
+    '⚠️ Удалить бюджет полностью?\n\n' +
+      'Будут удалены безвозвратно:\n' +
+      '— все месяцы, включая архив,\n' +
+      '— все категории и траты,\n' +
+      '— все участники.\n\n' +
+      'Восстановить можно только из бэкапа БД.\n\n' +
+      'Продолжить?',
     { reply_markup: kb },
   );
 }
@@ -106,23 +160,40 @@ export async function onDeleteBudgetConfirm(ctx: BotContext): Promise<void> {
 
   const { household } = ctx.appContext;
   const telegramIds = getHouseholdTelegramIds(household.id);
+  const initiatorId = ctx.from?.id;
 
-  closeHousehold(household.id, ctx.user.id);
+  deleteHousehold(household.id, ctx.user.id);
 
   await ctx
-    .editMessageText('🚫 Бюджет закрыт. Данные будут удалены через 30 дней.')
+    .editMessageText('🗑 Бюджет удалён. Отправьте /start, чтобы создать новый.')
     .catch(() => undefined);
 
-  const text = '🚫 Бюджет закрыт владельцем.\n\n' + 'Все данные будут удалены через 30 дней.';
-
   for (const tgId of telegramIds) {
-    await ctx.api.sendMessage(tgId, text).catch(() => undefined);
+    if (tgId === initiatorId) continue;
+    await ctx.api
+      .sendMessage(
+        tgId,
+        '🗑 Владелец удалил бюджет. Все данные стёрты.\n\n' + 'Можно создать свой бюджет: /start',
+      )
+      .catch(() => undefined);
   }
 }
 
 export async function onDeleteBudgetCancel(ctx: BotContext): Promise<void> {
   await ctx.answerCallbackQuery();
   await ctx.editMessageText('Отменено.').catch(() => undefined);
+}
+
+// ---------------------------------------------------------------------------
+// Хелпер
+// ---------------------------------------------------------------------------
+
+function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
 }
 
 // ---------------------------------------------------------------------------
